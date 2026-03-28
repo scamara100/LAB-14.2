@@ -15,6 +15,12 @@ const noteSchema = new Schema({
     type: Date,
     default: Date.now,
   },
+  // add a field to our note schema to relate it to a user
+  user: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  }
 });
  
 const Note = model('Note', noteSchema);
