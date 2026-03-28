@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
   // This currently finds all notes in the database.
   // It should only find notes owned by the logged in user.
   try {
-    const notes = await Note.find({});
+    const notes = await Note.find({user: req.user._id});
     res.json(notes);
   } catch (err) {
     res.status(500).json(err);
@@ -37,11 +37,22 @@ router.post('/', async (req, res) => {
 // PUT /api/notes/:id - Update a note
 router.put('/:id', async (req, res) => {
   try {
-    // This needs an authorization check
-    const note = await Note.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!note) {
+    // find the note first so we can check which user created it (ownership)
+    const foundNote = await Note.findById(req.params.id)
+
+    if (!foundNote) {
       return res.status(404).json({ message: 'No note found with this id!' });
     }
+
+    // compare the note's user id with the logged in user's id 
+    // if they don't match, it's not our note and we shouldn't be able to update it 
+    if (foundNote.user.toString() !== req.user._id) {
+      return res.status(403).json({ message: 'User is not authorized to update this note.' })
+    }
+
+    // This needs an authorization check
+    const note = await Note.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    
     res.json(note);
   } catch (err) {
     res.status(500).json(err);
@@ -51,11 +62,22 @@ router.put('/:id', async (req, res) => {
 // DELETE /api/notes/:id - Delete a note
 router.delete('/:id', async (req, res) => {
   try {
-    // This needs an authorization check
-    const note = await Note.findByIdAndDelete(req.params.id);
-    if (!note) {
+    // find the note first so we can check which user created it (ownership)
+    const foundNote = await Note.findById(req.params.id)
+
+    if (!foundNote) {
       return res.status(404).json({ message: 'No note found with this id!' });
     }
+
+    // compare the note's user id with the logged in user's id 
+    // if they don't match, it's not our note and we shouldn't be able to delete it 
+    if (foundNote.user.toString() !== req.user._id) {
+      return res.status(403).json({ message: 'User is not authorized to delete this note.' })
+    }
+
+    // This needs an authorization check
+    const note = await Note.findByIdAndDelete(req.params.id);
+
     res.json({ message: 'Note deleted!' });
   } catch (err) {
     res.status(500).json(err);
